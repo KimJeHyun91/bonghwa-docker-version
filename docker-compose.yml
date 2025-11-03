@@ -1,0 +1,125 @@
+version: '3.8'
+
+services:
+  # 1. PostgreSQL 데이터베이스
+  db:
+    image: postgres:latest
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=admin1234
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. RabbitMQ 브로커
+  broker:
+    image: rabbitmq:latest
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  # 3. Central Service
+  central-service:
+    image: bonghwa-central:latest
+    build:
+      context: .
+      dockerfile: central-service/Dockerfile
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+      broker:
+        condition: service_started
+    environment:
+      # config
+      # PostgreSQL 데이터베이스 설정(애플리케이션용)
+      - PGHOST=db
+      - PGPORT=5432
+      - PGDATABASE=bonghwa_central
+      - PGUSER=bonghwa_central_admin
+      - PGPASSWORD=1234
+      # PostgreSQL 데이터베이스 설정(DB 생성 및 사용자 설정 스크립트용)
+      - DFPGHOST=db
+      - DFPGPORT=5432
+      - DFPGDATABASE=postgres
+      - DFPGUSER=postgres
+      - DFPGPASSWORD=admin1234
+      # RabbitMQ 접속 정보
+      - RABBITMQ_URL=amqp://guest:guest@broker:5672
+      # TCP 클라이언트 설정
+      - CENTRAL_SERVER_IP=121.162.7.67
+      - CENTRAL_SERVER_PORT=9504
+      - CENTRAL_PROTOCOL_MAGIC_NUMBER=0xF020190F
+      - CENTRAL_SYSTEM_SENDER_ID=mmdip@mois.go.kr
+      - CENTRAL_SERVICE_SENDER_ID=git_client@mois.go.kr
+      # 중앙 서비스 설정
+      - CENTRAL_AUTH_ID=git_client
+      - CENTRAL_AUTH_PASSWORD=GIT_client1!
+    command: >
+      sh -c "echo 'DB is ready. Running setup scripts...' &&
+             echo '[Central] Running setupUser.js...' &&
+             npm run db:user:setup --prefix ./central-service &&
+             echo '[Central] Running createDatabase.js...' &&
+             npm run db:create --prefix ./central-service &&
+             echo '[Central] Running migrations...' &&
+             npm run migrate up --prefix ./central-service &&
+             echo '[Central] Starting app...' &&
+             npm start --prefix ./central-service"
+    volumes:
+      - ./logs/central:/usr/src/app/central-service/logs
+
+  # 4. External Service
+  external-service:
+    image: bonghwa-external:latest
+    build:
+      context: .
+      dockerfile: external-service/Dockerfile
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+      broker:
+        condition: service_started
+    environment:
+      # API & Socket.IO 서버 설정
+      - HTTP_PORT=8081
+      # RabbitMQ 접속 정보
+      - RABBITMQ_URL=amqp://guest:guest@broker:5672
+      # PostgreSQL 데이터베이스 설정(애플리케이션용)
+      - PGHOST=db
+      - PGPORT=5432
+      - PGDATABASE=bonghwa_external
+      - PGUSER=bonghwa_external_admin
+      - PGPASSWORD=1234
+      # PostgreSQL 데이터베이스 설정(DB 생성 및 사용자 설정 스크립트용)
+      - DFPGHOST=db
+      - DFPGPORT=5432
+      - DFPGDATABASE=postgres
+      - DFPGUSER=postgres
+      - DFPGPASSWORD=admin1234
+    ports:
+      - "8081:8081"
+    command: >
+      sh -c "echo 'DB is ready. Running setup scripts...' &&
+             echo '[External] Running setupUser.js...' &&
+             npm run db:user:setup --prefix ./external-service &&
+             echo '[External] Running createDatabase.js...' &&
+             npm run db:create --prefix ./external-service &&
+             echo '[External] Running migrations...' &&
+             npm run migrate up --prefix ./external-service &&
+             echo '[External] Starting app...' &&
+             npm start --prefix ./external-service"
+    volumes:
+      - ./logs/external:/usr/src/app/external-service/logs
+
+# DB 데이터가 저장될 PC의 가상 공간(볼륨)을 정의합니다.
+volumes:
+  pgdata:
