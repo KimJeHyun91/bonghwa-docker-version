@@ -136,12 +136,12 @@ async function handleAuthResponse(messageBodyBuffer) {
                 break;
 
             case '400':
-                logger.error('🚨 [CentralService][TCPAuth] 서버 응답: 잘못된 요청(400). destId 확인 필요. 연결 종료.');
+                logger.error('🚨 [CentralService][TCPAuth] 서버 응답: 잘못된 요청(400). 연결 종료.');
                 sessionManager.getConnection()?.destroy();
                 break;
 
             case '404':
-                logger.error('🚨 [CentralService][TCPAuth] 서버 응답: 사용자 없음(404). destId 확인 필요. 연결 종료.');
+                logger.error('🚨 [CentralService][TCPAuth] 서버 응답: 사용자 없음(404). 연결 종료.');
                 sessionManager.getConnection()?.destroy();
                 break;
 
