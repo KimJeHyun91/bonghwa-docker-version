@@ -120,7 +120,10 @@ async function handleAuthResponse(messageBodyBuffer) {
                         response 
                     }
                 };
-                const messageBuffer = buildMessageBuffer(ETS_REQ_SYS_CON, responseXml);
+
+                logger.debug(`[CentralService][TCPAuth] 인증 요청 Data: ${JSON.stringify(responseXml)}`);
+                
+                const messageBuffer = buildMessageBuffer(ETS_REQ_SYS_CON, responseXml);                
 
                 sessionManager.send(messageBuffer, '암호화된 인증 응답');
                 logger.info('➡️ [CentralService][TCPAuth] 암호화된 인증 응답 전송 완료.');

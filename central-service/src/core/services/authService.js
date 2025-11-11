@@ -14,7 +14,7 @@ const config = require('../../config');
  * @private
  */
 function _md5(string) {
-    return crypto.createHash('md5').update(string).digest('hex').toUpperCase();
+    return crypto.createHash('md5').update(string).digest('hex');
 }
 
 const authService = {

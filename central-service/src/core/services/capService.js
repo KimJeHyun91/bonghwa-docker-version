@@ -5,7 +5,8 @@
 
 const config = require('../../config');
 const logger = require('../utils/logger');
-const { xmlParser, xmlBuilder } = require('../utils/protocolUtils');
+const { create } = require('xmlbuilder2');
+const { xmlParser } = require('../utils/protocolUtils');
 const { DateTime } = require('luxon');
 
 const CENTRAL_SYSTEM_SENDER_ID = config.CENTRAL_SYSTEM_SENDER_ID;
@@ -50,7 +51,7 @@ function buildCap(capObject) {
 
     try {
         
-        const xmlString = xmlBuilder.buildObject(capObject);
+        const xmlString = create(capObject).end({ headless: true, cdata: true });
         logger.debug('✅ [CentralService][CapService] CAP XML 빌드 완료.');
         return xmlString;
 
@@ -87,7 +88,7 @@ function createAckCap(originalCap, noteCode, noteMessage) {
     const originalAlert = originalCap.alert;
     const ackObject = {
         alert: {
-            $: { xmlns: 'urn:oasis:names:tc:emergency:cap:1.2' },
+            '@xmlns': 'urn:oasis:names:tc:emergency:cap:1.2',
             identifier: `${originalAlert.identifier}_ACK`,
             sender: CENTRAL_SERVICE_SENDER_ID, // 보내는 주체: 중앙 서비스
             sent: customFormat,
@@ -124,7 +125,7 @@ function buildDeviceInfoCap(identifier, rawMessege, systemName) {
 
     const capObject = {
         alert: {
-            $: { xmlns: 'urn:oasis:names:tc:emergency:cap:1.2' },
+            '@xmlns': 'urn:oasis:names:tc:emergency:cap:1.2',
             identifier: identifier,
             sender: CENTRAL_SERVICE_SENDER_ID, // 보내는 주체: 중앙 서비스
             sent: customFormat,
@@ -140,12 +141,13 @@ function buildDeviceInfoCap(identifier, rawMessege, systemName) {
                 severity: 'Unknown',
                 certainty: 'Unknown',
                 eventCode: { valueName: 'KR.eventCode', value: 'DIS' },
-                senderName: '봉화 재난 정보 게이트웨이',
+                senderName: '재난 정보 게이트웨이',
                 headline: `${systemName} 단말장치 제원정보`,
                 parameter: {
                     valueName: 'DEVICE_DATA',
-                    // CDATA 섹션으로 감싸기 위해 xml2js의 특별한 형식을 사용
-                    value: JSON.stringify(rawMessege),
+                    value: {
+                        '$': JSON.stringify(rawMessege)
+                    }
                 },
             },
         },
@@ -172,7 +174,7 @@ function buildDeviceStatusCap(identifier, rawMessege, systemName) {
 
     const capObject = {
         alert: {
-            $: { xmlns: 'urn:oasis:names:tc:emergency:cap:1.2' },
+            '@xmlns': 'urn:oasis:names:tc:emergency:cap:1.2',
             identifier: identifier,
             sender: CENTRAL_SERVICE_SENDER_ID, // 보내는 주체: 중앙 서비스
             sent: customFormat,
@@ -188,12 +190,13 @@ function buildDeviceStatusCap(identifier, rawMessege, systemName) {
                 severity: 'Unknown',
                 certainty: 'Unknown',
                 eventCode: { valueName: 'KR.eventCode', value: 'DIS' },
-                senderName: '봉화 재난 정보 게이트웨이',
+                senderName: '재난 정보 게이트웨이',
                 headline: `${systemName} 단말장치 상태정보`,
                 parameter: {
                     valueName: 'DEVICE_STATUS',
-                    // CDATA 섹션으로 감싸기 위해 xml2js의 특별한 형식을 사용
-                    value: JSON.stringify(rawMessege),
+                    value: {
+                        '$': JSON.stringify(rawMessege)
+                    }
                 },
             },
         },
@@ -222,7 +225,7 @@ function buildDisasterResultCap(identifier, rawMessege, systemName, originalSent
     
     const capObject = {
         alert: {
-            $: { xmlns: 'urn:oasis:names:tc:emergency:cap:1.2' },
+            '@xmlns': 'urn:oasis:names:tc:emergency:cap:1.2',
             identifier: identifier,
             sender: CENTRAL_SERVICE_SENDER_ID, // 보내는 주체: 중앙 서비스
             sent: customFormat,
@@ -240,12 +243,12 @@ function buildDisasterResultCap(identifier, rawMessege, systemName, originalSent
                 severity: 'Unknown',
                 certainty: 'Unknown',
                 eventCode: { valueName: 'KR.eventCode', value: 'DIM' },
-                senderName: '봉화 재난 정보 게이트웨이',
+                senderName: '재난 정보 게이트웨이',
                 headline: '재난 정보 처리결과',
                 parameter: {
-                    valueName: 'LASReport',
-                    // CDATA 섹션으로 감싸기 위해 xml2js의 특별한 형식을 사용
-                    value: JSON.stringify(rawMessege),
+                    value: {
+                        '$': JSON.stringify(rawMessege)
+                    }
                 },
             },
         },

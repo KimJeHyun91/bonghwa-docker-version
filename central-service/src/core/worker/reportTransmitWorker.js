@@ -34,34 +34,7 @@ async function _run() {
 
             // 조회된 모든 메시지에 대해 '제한된 병렬 처리' 방식으로 전송을 요청합니다.
             const tasks = unProcessedMessages.map(async (message) => {
-
-                const logId = message.id; // report_transmit_log ID
-                let logToSend = message;
-
-                // 'SENT' 상태 (이전 전송 후 ACK/NACK 못 받음) -> 재시도 준비
-                if (message.status === 'SENT') {
-
-                    logger.debug(`🚀 [CentralService][ReportTransmitWorker] report_transmit_log ID [${logId}] 'SENT' 상태. 재시도 준비 시작...`);
-
-                    try {
-                        // DB의 재시도 횟수와 보고 시퀸스를 먼저 1 증가시킵니다.
-                        await reportTransmitLogRepository.incrementRetryCountAndReportSequence(logId);
-
-                        // reliableTransmitService에 전달할 log 객체에 업데이트된 값을 반영합니다.
-                        logToSend = {
-                            ...message,
-                            retry_count: message.retry_count + 1,
-                            report_sequence: message.report_sequence + 1
-                        };
-                        logger.debug(`✅ [CentralService][ReportTransmitWorker] report_transmit_log ID [${logId}] 재시도 준비 완료 (Retry: ${logToSend.retry_count}, Seq: ${logToSend.report_sequence})`);
-                    } catch (updateErr) {
-                        logger.error(`🚨 [CentralService][ReportTransmitWorker] report_transmit_log ID [${logId}] 재시도 준비 DB 업데이트 오류: ${updateErr.message}. 이번 주기 건너뜀.`);
-                        return;
-                    }
-
-                }
-                // 'PENDING' 상태이거나 업데이트된 'SENT' 상태의 logToSend 객체를 전달
-                return limit(() => reliableTransmitService.processMessage(logToSend));
+                return limit(() => reliableTransmitService.processMessage(message));
             });
 
             // 생성된 모든 작업이 완료될 때까지 기다립니다.

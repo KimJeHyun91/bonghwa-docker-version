@@ -101,11 +101,10 @@ function createCnfDisInfoBuffer(receivedData, capInfoObject, error = null) {
         const { transMsgId, transMsgSeq } = receivedData;
         const { resultCode, resultText, noteCode, noteMessage } = _mapErrorToResponseCode(error);
         
-        let ackCapXml = null;
+        let ackCapObject = null;
         // capInfoObject가 있을 경우 ACK CAP 메시지를 생성합니다.
         if (capInfoObject) {
-            const ackCapObject = capService.createAckCap(capInfoObject, noteCode, noteMessage);
-            ackCapXml = capService.buildCap(ackCapObject);
+            ackCapObject = capService.createAckCap(capInfoObject, noteCode, noteMessage);
         } 
 
         const responseXmlObject = {
@@ -114,7 +113,7 @@ function createCnfDisInfoBuffer(receivedData, capInfoObject, error = null) {
                 result: resultText,
                 transMsgSeq: transMsgSeq,
                 transMsgId: transMsgId,
-                capInfo: ackCapXml,
+                capInfo: ackCapObject,
             },
         };
 

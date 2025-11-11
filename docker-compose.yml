@@ -39,6 +39,8 @@ services:
       broker:
         condition: service_started
     environment:
+      # KST 시간대 설정
+      - TZ=Asia/Seoul
       # config
       # PostgreSQL 데이터베이스 설정(애플리케이션용)
       - PGHOST=db
@@ -89,6 +91,8 @@ services:
       broker:
         condition: service_started
     environment:
+      # KST 시간대 설정
+      - TZ=Asia/Seoul
       # API & Socket.IO 서버 설정
       - HTTP_PORT=8081
       # RabbitMQ 접속 정보

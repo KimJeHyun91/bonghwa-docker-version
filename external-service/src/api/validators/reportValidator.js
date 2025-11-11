@@ -13,11 +13,6 @@ const validateDeviceInfoReport = [
     body('deviceList')
         .notEmpty().withMessage('deviceList는 필수값입니다.')
         .isArray({ min: 1 }).withMessage('deviceList는 1개 이상의 항목을 포함하는 배열이어야 합니다.'),
-
-        
-    body('deviceList.*.device_type')
-        .notEmpty().withMessage('device_type는 필수값입니다.')
-        .isString().withMessage('device_type는 문자열이어야 합니다.'),
     
     body('deviceList.*.server_ip')
         .notEmpty().withMessage('server_ip는 필수값입니다.')
@@ -26,6 +21,10 @@ const validateDeviceInfoReport = [
     body('deviceList.*.server_name')
         .notEmpty().withMessage('server_name는 필수값입니다.')
         .isString().withMessage('server_name는 문자열이어야 합니다.'),
+
+    body('deviceList.*.device_type')
+        .notEmpty().withMessage('device_type는 필수값입니다.')
+        .isString().withMessage('device_type는 문자열이어야 합니다.'),
 
     body('deviceList.*.device_id')
         .notEmpty().withMessage('device_id는 필수값입니다.')
@@ -39,6 +38,18 @@ const validateDeviceInfoReport = [
         .notEmpty().withMessage('device_model는 필수값입니다.')
         .isString().withMessage('device_model는 문자열이어야 합니다.'),
 
+    body('deviceList.*.device_output')
+        .notEmpty().withMessage('device_output는 필수값입니다.')
+        .isString().withMessage('device_output는 문자열이어야 합니다.'),
+        
+    body('deviceList.*.device_company')
+        .notEmpty().withMessage('device_company는 필수값입니다.')
+        .isString().withMessage('device_company는 문자열이어야 합니다.'),    
+
+    body('deviceList.*.device_bjdong')
+        .notEmpty().withMessage('device_bjdong는 필수값입니다.')
+        .isNumeric().withMessage('device_bjdong는 숫자이여야 합니다.'),  
+
     body('deviceList.*.device_lat')
         .notEmpty().withMessage('device_lat는 필수값입니다.')
         .isFloat().withMessage('device_lat는 숫자(소수)이어야 합니다.'),
@@ -49,7 +60,20 @@ const validateDeviceInfoReport = [
 
     body('deviceList.*.device_address')
         .notEmpty().withMessage('device_address는 필수값입니다.')
-        .isString().withMessage('device_address는 문자열이어야 합니다.'),   
+        .isString().withMessage('device_address는 문자열이어야 합니다.'),
+
+    body('deviceList.*.device_inst_date')
+        .notEmpty().withMessage('device_inst_date는 필수값입니다.')
+        .isNumeric().withMessage("device_inst_date는 날짜형식 'YYYYMMDD'이어야 합니다.")
+        .isLength({ min: 8, max: 8 }).withMessage("device_inst_date는 8자리 'YYYYMMDD' 형식이어야 합니다."),   
+
+    body('deviceList.*.device_allow_dist_min')
+        .notEmpty().withMessage('device_allow_dist_min는 필수값입니다.')
+        .isNumeric().withMessage('device_allow_dist_min는 숫자이여야 합니다.'),  
+    
+    body('deviceList.*.device_allow_dist_max')
+        .notEmpty().withMessage('device_allow_dist_max는 필수값입니다.')
+        .isNumeric().withMessage('device_allow_dist_max는 숫자이여야 합니다.'),
 
     body('deviceList.*.note')
         .optional()

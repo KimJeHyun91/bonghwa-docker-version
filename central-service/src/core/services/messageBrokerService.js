@@ -13,6 +13,7 @@ const pool = require('../repositories/pool');
 
 let connection = null;
 let channel = null;
+let shouldRecconect = true;
 
 const { 
     URL: RABBITMQ_URL,
@@ -113,7 +114,9 @@ async function start() {
         });
 
         connection.on('close', () => {
-            logger.error('🔌 [CentralService][RabbitMQ] 연결 끊김. 5초 후 재연결 시도 예정.');
+            if (shouldRecconect) {
+                logger.error('🔌 [CentralService][RabbitMQ] 연결 끊김. 5초 후 재연결 시도 예정.');
+            }
             // 연결이 닫히면, 재연결을 위해 변수를 초기화합니다.
             connection = null;
             channel = null;
@@ -294,6 +297,7 @@ function publishDisaster(payload, routingKey) {
  */
 async function disconnect() {
     logger.info('🔌 [CentralService][MessageBroker] RabbitMQ 연결 종료 시작...');
+    shouldRecconect = false;
     try {
         if (channel) {
             await channel.close();

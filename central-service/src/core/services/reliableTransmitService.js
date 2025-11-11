@@ -61,16 +61,37 @@ async function processFailure(logId, currentRetryCount, failureReason = 'Unknwon
         return;
     }
 
-    const nextRetryCount = currentRetryCount + 1; // 여기서 계산만 하고 DB 업데이트는 워커 담당
+    const nextRetryCount = currentLog.retry_count + 1; // 여기서 계산만 하고 DB 업데이트는 워커 담당
 
     try {
-        await reportTransmitLogRepository.updateStatusById(logId, 'PENDING', failureReason);
-        logger.warn(`🔔 [CentralService][ReliableTransmit] report_transmit_log ID [${logId}] 전송 실패 (${failureReason}). 재시도 예정 (시도 #${nextRetryCount})/${MAX_RETRIES}).`);
+
+        // 1. 최대 재시도 횟수를 초과한 경우
+        if (nextRetryCount > MAX_RETRIES) {
+
+            // 상태를 'FAILED'로 최종 변경합니다.
+            await reportTransmitLogRepository.updateStatusById(logId, 'FAILED', `Max retries (${MAX_RETRIES}) exceeded: ${failureReason}`);
+            logger.warn(`🔔 [CentralService][ReliableTransmit] report_transmit_log ID [${logId}] 전송 실패 (${failureReason}).`);
+
+        } else {
+
+            // 2. 아직 재시도 횟수가 남은 경우
+
+            // DB의 재시도 횟수와 보고 시퀸스를 증가시킴
+            await reportTransmitLogRepository.incrementRetryCountAndReportSequence(logId);
+
+
+            // 상태를 PENDING으로 업데이트 (에러 메시지 포함)
+            await reportTransmitLogRepository.updateStatusById(logId, 'PENDING', failureReason);
+
+            logger.warn(`[CentralService][ReliableTransmit] report_transmit_log ID [${logId}] 전송 실패 (${failureReason}). 재시도 예정 (시도 #${nextRetryCount}/${MAX_RETRIES}).`);
+
+        }
+        
     } catch (updateErr) {
+
         logger.error(`🚨🚨 [CentralService][ReliableTransmit] PENDING 상태 업데이트 실패 (report_transmit_log ID: ${logId}): ${updateErr.message}`);
-    }
     
-    
+    }    
 
 }
 
@@ -143,6 +164,9 @@ async function processMessage(log) {
                 capInfo: capObject
             }            
         };
+
+        // logger.debug(`[CentralService][ReliableTransmit] 전송할 메시지: ${JSON.stringify(messageXmlToSend)}`);
+
         const messageBuffer = buildMessageBuffer(messageId, messageXmlToSend);
 
         sessionManager.send(messageBuffer, logContext);
@@ -219,6 +243,8 @@ async function processAck(messageBodyBuffer) {
         reportSequence = data.transMsgSeq; // 파싱 실패 시 undefined
         const resultCode = String(data.resultCode); // 파싱 실패 시 undefined
 
+        logger.debug(`[CentralService][ReliableTransmit] 보고 응답 수신.`);
+
         if (!outboundId) {
             throw new Error('응답 메시지에 outboundId(transMsgId) 누락.');
         }
@@ -248,7 +274,7 @@ async function processAck(messageBodyBuffer) {
             logger.warn(`🔔 [CentralService][ReliableTransmit] report_transmit_log ID [${logId}] 활성 타임아웃 타이머 없음 (응답 수신 시점).`);
         }
 
-        logger.debug(`⬅️ [CentralService][ReliableTransmit] 보고 응답 수신 (report_transmit_log ID: ${logId}, OutboundID: ${outboundId}, Seq: ${reportSequence}, Code: ${resultCode}).`);
+        logger.debug(`⬅️ [CentralService][ReliableTransmit] 보고 응답 수신 확인 (report_transmit_log ID: ${logId}, OutboundID: ${outboundId}, Seq: ${reportSequence}, Code: ${resultCode}).`);
 
         // 상태 확인 후 처리 (중복 처리 방지)
         if (currentLog.status === 'FAILED' || currentLog.status === 'SUCCESS') {
